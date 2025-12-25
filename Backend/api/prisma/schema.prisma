@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlaceType {
+  car
+  bike
+}
+
+enum PlaceStatus {
+  active
+  temp_unavailable
+  disputed
+  hidden
+  deleted
+}
+
+model User {
+  id              String   @id @default(uuid())
+  username        String   @unique
+  email           String   @unique
+  passwordHash    String
+  emailVerifiedAt DateTime?
+  lastActiveAt    DateTime @default(now())
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  places          Place[]
+}
+
+model Place {
+  id                    String      @id @default(uuid())
+  type                  PlaceType
+  status                PlaceStatus @default(active)
+
+  lat                   Float
+  lng                   Float
+
+  createdByUserId       String?
+  createdByUsernameSnap String
+
+  note                  String?
+
+  avgRating             Float       @default(0)
+  ratingsCount          Int         @default(0)
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  createdBy             User?       @relation(fields: [createdByUserId], references: [id])
+
+  carRule               CarRule?
+  carWindows            CarTimeWindow[]
+}
+
+model CarRule {
+  placeId              String  @id
+  isFree               Boolean
+  freeMinutes          Int?
+  freeOutsideHours     Boolean
+  outsideHoursBehavior String // "free" | "not_allowed"
+
+  place                Place   @relation(fields: [placeId], references: [id])
+}
+
+model CarTimeWindow {
+  id        String @id @default(uuid())
+  placeId   String
+  weekday   Int    // 1=Mon ... 7=Sun
+  startTime String // "09:00"
+  endTime   String // "18:00"
+
+  place     Place  @relation(fields: [placeId], references: [id])
+}
